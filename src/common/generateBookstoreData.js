@@ -1,3 +1,5 @@
+const cliProgress = require('cli-progress');
+
 const NUM_BOOKS = 1000000;
 const NUM_AUTHORS = 10000;
 const haloweenISODate = '-10-31';
@@ -12,17 +14,48 @@ const genres = [FICTION, DRAMA, POETRY, FINANCE, HOROR];
 const books = [];
 const authors = [];
 
-const genBookstore = (numBooks = NUM_BOOKS, numAuthors = NUM_AUTHORS) => {
+let progressBarAuthors = null;
+let progressBarBooks = null;
+
+const genBookstore = (
+    numBooks = NUM_BOOKS,
+    numAuthors = NUM_AUTHORS,
+    logProgress = false
+) => {
     if (!authors.length) {
+        if (logProgress) {
+            console.log('Generating authors: ');
+            progressBarAuthors = new cliProgress.SingleBar(
+                {},
+                cliProgress.Presets.shades_classic
+            );
+            progressBarAuthors.start(numAuthors, 0);
+        }
+
         for (let i = numAuthors; i > 0; i--) {
             authors.push({
                 name: 'Author ' + i + Math.floor(Math.random() * numAuthors),
                 gender: Math.floor(Math.random() * 2) ? MALE : FEMALE,
             });
+
+            progressBarAuthors.increment();
         }
+
+        progressBarAuthors.stop();
+
+        console.log('- authors generated');
     }
 
     if (!books.length) {
+        if (logProgress) {
+            console.log('Generating books: ');
+            progressBarBooks = new cliProgress.SingleBar(
+                {},
+                cliProgress.Presets.shades_classic
+            );
+            progressBarBooks.start(numBooks, 0);
+        }
+
         for (let i = numBooks; i > 0; i--) {
             const author = authors[Math.floor(Math.random() * authors.length)];
             const genre = genres[Math.floor(Math.random() * genres.length)];
@@ -48,7 +81,13 @@ const genBookstore = (numBooks = NUM_BOOKS, numAuthors = NUM_AUTHORS) => {
                 genre,
                 publishedDate,
             });
+
+            progressBarBooks.increment();
         }
+
+        progressBarBooks.stop();
+
+        console.log('- books generated');
     }
 
     return {
@@ -58,4 +97,4 @@ const genBookstore = (numBooks = NUM_BOOKS, numAuthors = NUM_AUTHORS) => {
     };
 };
 
-export { genBookstore };
+exports.genBookstore = genBookstore;
