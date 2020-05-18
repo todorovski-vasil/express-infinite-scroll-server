@@ -6,10 +6,17 @@ const app = express();
 
 const url = 'mongodb://localhost:27017/';
 const booksCol = 'books';
+const genresCol = 'genres';
 let dbo = null;
 const MAX_NUM_RECORDS = 1000;
 
-app.get('/books', async (req, res) => {
+app.get('/api/genres', async (req, res) => {
+    const genres = await dbo.collection(genresCol).find().toArray();
+
+    res.send(genres.map((genre) => genre.genre));
+});
+
+app.get('/api/books', async (req, res) => {
     let offset = 0;
     const query = {};
     const sortCriteria = {};
@@ -49,7 +56,7 @@ app.get('/books', async (req, res) => {
 
     const books = await dbo.collection(booksCol).aggregate(aggregate).toArray();
 
-    res.send(JSON.stringify(books));
+    res.send(books);
 });
 
 const server = app.listen(3003, () => {
@@ -78,6 +85,8 @@ const server = app.listen(3003, () => {
                 if (
                     !collections.map((c) => c.collectionName).includes(booksCol)
                 ) {
+                    const bookstore = genBookstore(1000000, 1000, true);
+
                     await dbo.createCollection(booksCol);
                     await dbo.collection(booksCol).createIndex({
                         name: 1,
@@ -91,18 +100,50 @@ const server = app.listen(3003, () => {
                     await dbo.collection(booksCol).createIndex({
                         'author.gender': 1,
                     });
-
-                    const bookstore = genBookstore(1000000, 1000, true);
+                    await dbo.collection(booksCol).createIndex({
+                        name: 1,
+                        genre: 1,
+                    });
+                    await dbo.collection(booksCol).createIndex({
+                        name: 1,
+                        genre: 1,
+                        'author.gender': 1,
+                    });
+                    await dbo.collection(booksCol).createIndex({
+                        'author.name': 1,
+                        genre: 1,
+                    });
+                    await dbo.collection(booksCol).createIndex({
+                        'author.name': 1,
+                        genre: 1,
+                        'author.gender': 1,
+                    });
                     try {
-                        const inserted = await dbo
-                            .collection(booksCol)
-                            .insertMany(
-                                bookstore.books.map((book) => {
-                                    book._id = book.isbn;
-                                    return book;
-                                })
-                            );
+                        await dbo.collection(booksCol).insertMany(
+                            bookstore.books.map((book) => {
+                                book._id = book.isbn;
+                                return book;
+                            })
+                        );
                         console.log('Written books into collection');
+                    } catch (err) {
+                        console.error(err);
+                    }
+
+                    if (
+                        collections
+                            .map((c) => c.collectionName)
+                            .includes(genresCol)
+                    ) {
+                        await dbo.collection(genresCol).drop();
+                    }
+                    await dbo.createCollection(genresCol);
+                    try {
+                        await dbo.collection(genresCol).insertMany(
+                            bookstore.genres.map((genre) => ({ genre }))
+                            // bookstore.genres
+                        );
+                        console.log('Written genres into collection');
                     } catch (err) {
                         console.error(err);
                     }
